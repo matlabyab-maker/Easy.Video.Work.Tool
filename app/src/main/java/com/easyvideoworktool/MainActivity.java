@@ -395,6 +395,7 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Could not read video duration", Toast.LENGTH_SHORT).show();
             return;
         } finally {
+<<<<<<< HEAD
             try { metadata.release(); } catch (Exception ignored) { }
         }
         final long durationMs = currentVideoDurationMs;
@@ -430,6 +431,43 @@ public class MainActivity extends Activity {
                     // A damaged or unsupported frame must not stop the other workers.
                 } finally {
                     try { retriever.release(); } catch (Exception ignored) { }
+=======
+            try { metadata.release(); } catch (RuntimeException ignored) { }
+        }
+        final long durationMs = currentVideoDurationMs;
+        if (durationMs <= 0) return;
+
+        // Two independent workers process disjoint frame indexes; UI order remains chronological.
+        for (int worker = 0; worker < FRAME_WORKER_COUNT; worker++) {
+            final int workerIndex = worker;
+            Future<?> job = frameWorkers.submit(() -> {
+                MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                try {
+                    retriever.setDataSource(this, videoUri);
+                    for (int frameIndex = workerIndex; frameIndex < FIXED_FRAME_COUNT; frameIndex += FRAME_WORKER_COUNT) {
+                        if (Thread.currentThread().isInterrupted() || extractionGeneration.get() != generation) break;
+                        long timeUs = (durationMs * frameIndex / (FIXED_FRAME_COUNT - 1)) * 1000L;
+                        Bitmap frame = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST);
+                        if (frame == null) continue;
+                        Bitmap thumb = Bitmap.createScaledBitmap(frame, 240, 135, true);
+                        if (thumb != frame) frame.recycle();
+                        final Bitmap result = thumb;
+                        final int target = frameIndex;
+                        runOnUiThread(() -> {
+                            if (extractionGeneration.get() != generation || isFinishing()) {
+                                if (!result.isRecycled()) result.recycle();
+                                return;
+                            }
+                            Bitmap old = storyboardFrames.set(target, result);
+                            if (old != null && old != result && !old.isRecycled()) old.recycle();
+                            if (target < storyboardCells.size()) storyboardCells.get(target).setImageBitmap(result);
+                        });
+                    }
+                } catch (Exception ignored) {
+                    // A damaged or unsupported frame must not stop the other workers.
+                } finally {
+                    try { retriever.release(); } catch (RuntimeException ignored) { }
+>>>>>>> branch 'master' of https://github.com/matlabyab-maker/Easy.Video.Work.Tool.git
                 }
             });
             frameJobs.add(job);
