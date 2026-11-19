@@ -1,30 +1,19 @@
 # Easy.Video.Work.Tool
 
-Independent Android starter project based on the supplied reference layout.
+Independent Android video-editor starter project.
 
-## Current scope
-- Main-screen layout scaffold: top tool strip, left playback/edit controls, center player placeholder, right crop/cover controls, timeline controls, and a vertically scrollable storyboard grid.
-- The visible controls are currently visual placeholders. Video import, playback, editing, rendering, and export engines are not implemented in this initial structure.
-- Application ID: `com.easyvideoworktool`
-- Minimum Android version: Android 6.0 (API 23)
-- Build: Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, compile SDK 35.
+## Included in this revision
+- Fixed-width weighted top toolbar so all eight tools remain within the screen width.
+- Multi-select video import through Android's document picker.
+- Actual VideoView playback with Play/Pause state changes.
+- Storyboard column selector from 1 through 15 columns.
+- Imported clips appear as selectable storyboard cells; tapping a cell loads that clip in the player.
+- Custom launcher icon.
+- GitHub Actions workflow builds a debug APK on pushes to every branch and supports manual runs.
 
-## Build APK on GitHub
-Push the project to any branch. `.github/workflows/android.yml` is configured for every branch and manual execution. The debug APK is uploaded as the workflow artifact `Easy.Video.Work.Tool-debug-apk`.
+## Build
+Open the repository in Android Studio or push it to GitHub and run **Android Build** under Actions.
 
-## MGit note
-If a local commit exists but GitHub does not reflect the expected history, first verify the selected branch and remote. The supplied troubleshooting note also records **Pull > Force Pull** in MGit as a previously successful recovery step. Back up local changes before Force Pull because it can replace local state.
+APK artifact: `Easy.Video.Work.Tool-debug-apk`
 
-## Build locally
-With JDK 17 and Android SDK 35 installed:
-
-```bash
-gradle assembleDebug
-```
-
-APK output: `app/build/outputs/apk/debug/app-debug.apk`.
-
-## Latest update
-- The eight top-row tools now share the available screen width equally, preventing the row from extending beyond the screen.
-- Import Videos opens Android's document picker with multi-selection enabled (`video/*`). Selected video URIs are retained in the activity session with read access where supported.
-- The GitHub Actions workflow remains configured for pushes to all branches and manual runs.
+Note: this is an incremental starter implementation. Editing, tracks, crop, effects, and final rendering are not implemented yet.
