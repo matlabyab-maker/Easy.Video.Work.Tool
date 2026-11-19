@@ -1,18 +1,24 @@
 package com.easyvideoworktool;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.Intent;
+import android.net.Uri;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
-import android.view.View;
-import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
 
 public class MainActivity extends Activity {
+    private static final int REQUEST_IMPORT_VIDEOS = 1001;
+    private final ArrayList<Uri> importedVideos = new ArrayList<>();
     private final int navy = Color.rgb(8, 25, 53);
     private final int panel = Color.rgb(15, 36, 70);
     private final int edge = Color.rgb(55, 78, 112);
@@ -28,18 +34,18 @@ public class MainActivity extends Activity {
         root.setPadding(dp(2), dp(2), dp(2), dp(2));
         setContentView(root);
 
-        HorizontalScrollView topScroll = new HorizontalScrollView(this);
-        topScroll.setHorizontalScrollBarEnabled(false);
-        topScroll.setFillViewport(false);
+        // Keep all eight top-row tools inside the screen; no horizontal protrusion.
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         String[] tools = {"Import\nVideos", "Export\nVideo", "Delete", "Tracks", "Color\nAnd Light", "Blur\nSharpen\nNoise", "Merge\nJoin", "Video\nText"};
         for (int i=0;i<tools.length;i++) {
-            TextView b = button(tools[i], i==2 ? Color.rgb(235,75,85) : white, panel, 13);
-            top.addView(b, new LinearLayout.LayoutParams(dp(i==2?74:88), dp(54)));
+            TextView b = button(tools[i], i==2 ? Color.rgb(235,75,85) : white, panel, 10);
+            b.setMaxLines(3);
+            b.setIncludeFontPadding(false);
+            if (i == 0) b.setOnClickListener(v -> openVideoPicker());
+            top.addView(b, new LinearLayout.LayoutParams(0, dp(58), 1));
         }
-        topScroll.addView(top);
-        root.addView(topScroll, new LinearLayout.LayoutParams(-1, dp(58)));
+        root.addView(top, new LinearLayout.LayoutParams(-1, dp(58)));
 
         LinearLayout upper = new LinearLayout(this);
         upper.setOrientation(LinearLayout.HORIZONTAL);
@@ -95,6 +101,54 @@ public class MainActivity extends Activity {
         }
         storyboardScroll.addView(storyboard);
         root.addView(storyboardScroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    }
+
+    private void openVideoPicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("video/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        startActivityForResult(intent, REQUEST_IMPORT_VIDEOS);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_IMPORT_VIDEOS || resultCode != RESULT_OK || data == null) return;
+
+        int added = 0;
+        ClipData clipData = data.getClipData();
+        if (clipData != null) {
+            for (int i = 0; i < clipData.getItemCount(); i++) {
+                Uri uri = clipData.getItemAt(i).getUri();
+                if (uri != null && !importedVideos.contains(uri)) {
+                    keepVideoPermission(data, uri);
+                    importedVideos.add(uri);
+                    added++;
+                }
+            }
+        } else if (data.getData() != null) {
+            Uri uri = data.getData();
+            if (!importedVideos.contains(uri)) {
+                keepVideoPermission(data, uri);
+                importedVideos.add(uri);
+                added++;
+            }
+        }
+
+        Toast.makeText(this, added > 0
+                ? added + " video(s) imported. Total: " + importedVideos.size()
+                : "No new videos selected", Toast.LENGTH_SHORT).show();
+    }
+
+    private void keepVideoPermission(Intent result, Uri uri) {
+        try {
+            getContentResolver().takePersistableUriPermission(
+                    uri, result.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (SecurityException ignored) {
+            // Some document providers do not offer persistable permissions.
+        }
     }
 
     private TextView button(String text, int textColor, int bg, int size) {

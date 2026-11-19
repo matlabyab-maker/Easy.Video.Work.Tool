@@ -23,3 +23,8 @@ gradle assembleDebug
 ```
 
 APK output: `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Latest update
+- The eight top-row tools now share the available screen width equally, preventing the row from extending beyond the screen.
+- Import Videos opens Android's document picker with multi-selection enabled (`video/*`). Selected video URIs are retained in the activity session with read access where supported.
+- The GitHub Actions workflow remains configured for pushes to all branches and manual runs.
